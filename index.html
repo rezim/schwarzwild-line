@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Połowa życia w pracy — kalkulator</title>
+  <title>Linia Schwarzwilda czyli ... Połowa życia w pracy — kalkulator</title>
   <style>
     :root { --bg:#0f172a; --card:#111827; --muted:#9ca3af; --fg:#e5e7eb; --accent:#22d3ee; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Noto Sans, sans-serif; background: var(--bg); color: var(--fg); margin: 0; }
@@ -27,18 +27,18 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Połowa życia w pracy — kalkulator</h1>
+      <h1>Linia Schwarzwilda czyli ... Połowa życia w pracy — kalkulator</h1>
       <p>Wyznacza datę <strong>X</strong>, w której liczba dni zatrudnienia równa się <em>połowie</em> liczby dni życia.
       Równanie: <span class="mono">(X − data_zatrudnienia) = (X − data_urodzenia) / 2</span> ⇒ <span class="mono">X = 2·hire − birth</span>.</p>
 
       <div class="row">
         <div>
           <label for="birth">Data urodzenia (dd/mm/rrrr)</label>
-          <input id="birth" placeholder="21/08/1976" inputmode="numeric" autocomplete="bday" />
+          <input id="birth" placeholder="dd/mm/rrrr" inputmode="numeric" autocomplete="bday" />
         </div>
         <div>
           <label for="hire">Data zatrudnienia (dd/mm/rrrr)</label>
-          <input id="hire" placeholder="11/01/2025" inputmode="numeric" />
+          <input id="hire" placeholder="dd/mm/rrr" inputmode="numeric" />
         </div>
       </div>
 
