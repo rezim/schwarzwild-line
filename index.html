@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Połowa życia w pracy — kalkulator</title>
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --muted:#9ca3af; --fg:#e5e7eb; --accent:#22d3ee; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Noto Sans, sans-serif; background: var(--bg); color: var(--fg); margin: 0; }
+    .wrap { max-width: 720px; margin: 40px auto; padding: 20px; }
+    .card { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    h1 { margin: 0 0 12px; font-size: 1.6rem; }
+    p { color: var(--muted); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    label { display:block; font-size: .9rem; margin-bottom: 6px; color: var(--fg); }
+    input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #374151; background: #0b1220; color: var(--fg); }
+    .btn { display:inline-block; padding: 10px 16px; border-radius: 10px; border: 0; background: var(--accent); color:#00212a; font-weight:700; cursor:pointer; }
+    .btn:disabled{ opacity:.6; cursor:not-allowed; }
+    .result { margin-top: 20px; padding: 16px; background:#0b1220; border:1px solid #1f2937; border-radius:12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .small { font-size: .9rem; color: var(--muted); }
+    .error { color: #fecaca; }
+    footer { margin-top: 18px; color: var(--muted); font-size: .85rem; }
+    a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Połowa życia w pracy — kalkulator</h1>
+      <p>Wyznacza datę <strong>X</strong>, w której liczba dni zatrudnienia równa się <em>połowie</em> liczby dni życia.
+      Równanie: <span class="mono">(X − data_zatrudnienia) = (X − data_urodzenia) / 2</span> ⇒ <span class="mono">X = 2·hire − birth</span>.</p>
+
+      <div class="row">
+        <div>
+          <label for="birth">Data urodzenia (dd/mm/rrrr)</label>
+          <input id="birth" placeholder="21/08/1976" inputmode="numeric" autocomplete="bday" />
+        </div>
+        <div>
+          <label for="hire">Data zatrudnienia (dd/mm/rrrr)</label>
+          <input id="hire" placeholder="11/01/2025" inputmode="numeric" />
+        </div>
+      </div>
+
+      <button id="calc" class="btn">Oblicz</button>
+      <span id="msg" class="small"></span>
+
+      <div id="out" class="result" hidden>
+        <div><strong>Data X:</strong> <span id="xDate" class="mono"></span></div>
+        <div class="small">
+          Dni życia do X: <span id="aliveDays" class="mono"></span> · Dni zatrudnienia do X: <span id="workDays" class="mono"></span>
+        </div>
+      </div>
+
+      <footer>
+        Obliczenia w czasie UTC (bez wpływu stref czasowych i DST). Źródło: równanie X = 2·hire − birth.  
+        Wskazówka: jeśli data zatrudnienia &lt; data urodzenia, wynik nie ma sensu — walidacja to wychwyci.
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function parsePLDate(str) {
+      const m = str.trim().match(/^([0-3]?\d)[\/\.\-]([01]?\d)[\/\.\-](\d{4})$/);
+      if (!m) return null;
+      const [_, dd, mm, yyyy] = m.map(Number);
+      if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+      // Używamy UTC, żeby unikać DST
+      const t = Date.UTC(yyyy, mm - 1, dd);
+      // Weryfikacja (np. 31/02/2025 odrzuci)
+      const d = new Date(t);
+      if (d.getUTCFullYear() !== yyyy || d.getUTCMonth() !== mm - 1 || d.getUTCDate() !== dd) return null;
+      return t;
+    }
+
+    function formatISODateUTC(t) {
+      const d = new Date(t);
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function daysBetweenUTC(t1, t2) {
+      const dayMs = 24 * 60 * 60 * 1000;
+      return Math.round((t1 - t2) / dayMs);
+    }
+
+    function computeHalfLifeWorkDay(birthUTC, hireUTC) {
+      // X = 2*hire - birth (na poziomie ms UTC)
+      return 2n * BigInt(hireUTC) - BigInt(birthUTC);
+    }
+
+    function showError(msg) {
+      $('msg').textContent = msg;
+      $('msg').className = 'small error';
+      $('out').hidden = true;
+    }
+
+    function showInfo(msg) {
+      $('msg').textContent = msg;
+      $('msg').className = 'small';
+    }
+
+    $('calc').addEventListener('click', () => {
+      const bStr = $('birth').value;
+      const hStr = $('hire').value;
+
+      const bUTC = parsePLDate(bStr);
+      const hUTC = parsePLDate(hStr);
+
+      if (bUTC === null) return showError('Nieprawidłowa data urodzenia. Użyj formatu dd/mm/rrrr.');
+      if (hUTC === null) return showError('Nieprawidłowa data zatrudnienia. Użyj formatu dd/mm/rrrr.');
+      if (hUTC < bUTC) return showError('Data zatrudnienia nie może być wcześniejsza niż data urodzenia.');
+
+      // Oblicz X z użyciem BigInt, a potem sprowadź do Number (bezpieczne do ~275 tys. lat, tu w pełni wystarczające)
+      const xUTCbig = computeHalfLifeWorkDay(bUTC, hUTC);
+      const xUTC = Number(xUTCbig);
+
+      const aliveDays = daysBetweenUTC(xUTC, bUTC);
+      const workDays = daysBetweenUTC(xUTC, hUTC);
+
+      // sanity: workDays powinno być połową aliveDays (różnice 0/1 dzień mogą wynikać z zaokrągleń, ale przy naszym wzorze będą równe)
+      $('xDate').textContent = formatISODateUTC(xUTC);
+      $('aliveDays').textContent = aliveDays.toLocaleString('pl-PL');
+      $('workDays').textContent = workDays.toLocaleString('pl-PL');
+      $('out').hidden = false;
+      showInfo('Gotowe. Skopiuj link po wdrożeniu na hosting.');
+    });
+  </script>
+</body>
+</html>
